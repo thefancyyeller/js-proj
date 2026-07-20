@@ -1,3 +1,5 @@
+import { TILES } from "./config";
+
 export class Chunk{
     constructor(size, cx, cy){
         this.tiles = new Array(size * size).fill(TILES.GRASS);
@@ -11,6 +13,8 @@ export class Chunk{
     }
 
     tileAt(col, row){
-        return this.tiles[row * this.size + row];
+        if((row * this.size + col) >= this.tiles.length)
+            throw ("Chunk Error. Tile out of bounds.");
+        return this.tiles[row * this.size + col];
     }
 }

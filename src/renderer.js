@@ -1,11 +1,5 @@
 import { TILES, TILE_SIZE, CHUNK_SIZE, getTileName, ENTITIES} from "./config.js";
 import {GameWorld} from "./world.js";
-// TODO: Label chunks debug feature
-
-
-// Debug options
-const labelChunks = true; 
-
 
 // Map of tile IDs to sprite paths (with specific non-integer exceptions)
 const tileSpritePaths = {
@@ -15,33 +9,31 @@ const tileSpritePaths = {
 
 const entitySpritePaths ={
     [ENTITIES.PLAYER]: "/player.png"
-}
+};
+
+const debugSpritePaths = {
+    "crossHair": "/crossHair.png"
+};
 
 // Map of sprite paths to actually loaded sprites
 const loadedSprites = {};
 
 /** Returns a promise array of all sprites being loaded*/
 export function loadSprites(){
-    const promises = [];
-    // Load the tileSprites
-    Object.entries(tileSpritePaths).forEach(([id, path]) => {
-        promises.push(new Promise((resolve, reject) => {
+    function imageLoadPromise(spritePath){
+        return new Promise((resolve, reject)=>{
             const img = new Image();
-            img.onload  = () => { loadedSprites[path] = img; resolve(); };
-            img.onerror = () => reject(new Error(`Failed to load sprite ${path}`));
-            img.src = path;
-        }));
-    });
-    // Load entity sprites
-    Object.entries(entitySpritePaths).forEach(([etid, path])=>{
-        promises.push(new Promise((resolve, reject)=>{
-            const img = new Image();
-            img.onload = () => { loadedSprites[path] = img; resolve();};
-            img.onerror = () => reject(new Error(`Failed to load sprite ${path}`));
-            img.src = path;
-        }));
-    });
-    return Promise.all(promises);
+            img.onload = () => {loadedSprites[spritePath] = img; resolve();};
+            img.onerror = () => reject(new Error(`Failed to load sprite ${spritePath}`));
+            img.src = spritePath;
+        });
+    };
+    const paths = [
+    ...Object.values(tileSpritePaths),
+    ...Object.values(entitySpritePaths),
+    ...Object.values(debugSpritePaths),
+    ];
+    return Promise.all(paths.map(imageLoadPromise));
 }
 
 export class Renderer{
@@ -51,6 +43,8 @@ export class Renderer{
         this.canvas = canvas;
         /**@type {CanvasRenderingContext2D} */
         this.ctx = canvas.getContext("2d");
+        /**@type {boolean} */
+        this.animations = true;
     }
 
     worldToScreen(coords, camera){
@@ -110,6 +104,8 @@ export class Renderer{
             const screenCoords = this.worldToScreen([entity.tx * TILE_SIZE, entity.ty * TILE_SIZE], gameWorld.camera);
             this.ctx.drawImage(sprite, screenCoords[0], screenCoords[1], TILE_SIZE * camera.zoom, TILE_SIZE * camera.zoom);
         }
+
+
 
     }
 }

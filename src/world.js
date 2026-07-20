@@ -3,20 +3,30 @@ import {CHUNK_SIZE, TILE_SIZE, TILES, RENDER_DIST, ENTITIES, EVICT_DIST,
 import { Chunk } from "./chunk.js";
 import { generateChunk } from "./worldgen.js";
 
-
+let nextId = 1;
+function allocId(){ // Gets a unique ID for an entity
+    return nextId++;
+}
 
 class Entity{
     constructor(type, tileX, tileY){
         this.etid = type;
         this.tx = tileX;
         this.ty = tileY;
+        /**@type {number} */
+        this.entityId = allocId();
     }
+
+    
 };
 
 export class GameWorld{
     chunks = new Map();
     player = new Entity(ENTITIES.PLAYER,1,1);
     entities = [this.player];
+    /**@type {Array<Array<number>>} */
+    playerMoveQueue = []; // Schedules player to move to the following tiles, unless interrupt occurs
+    interupted = false; // Flag for if player should continue doing queued moves
 
     constructor(seed){
         this.seed = seed;
@@ -27,39 +37,56 @@ export class GameWorld{
 
     update(){
         this.#manageChunks();
+        if(!this.interupted && this.playerMoveQueue.length > 0){
+            this.movePlayerDelta(...this.playerMoveQueue.unshift());
+        }
     }
 
     /**
-     * Applies one decoded input event.
-     * @param {{type: string, dx?: number, dy?: number, steps?: number}} event
+     * @param {number} entityId 
+     * @returns {Entity} entity
      */
-    handleEvent(event){
-        if(event.type === "move")
-            this.movePlayer(event.dx, event.dy);
-        else if(event.type === "zoom")
-            this.zoomCamera(event.steps);
+    getEntity(entityId){
+        for( const entity of this.entities){
+            if(entity.entityId === entityId)
+                return entity;
+        }
+        throw("Entity not found!");
     }
 
-    /** Steps the player by a tile delta and keeps the camera centred on them. */
-    movePlayer(dx, dy){
-        this.player.tx += dx;
-        this.player.ty += dy;
-        this.#centerCamera();
+    movePlayerDelta(dx, dy){ // Ignores delta moves that cannot be done
+        const newCoords = [this.player.tx + dx, this.player.ty + dy];
+        if(this.#moveEntity(this.player, newCoords[0], newCoords[1])){
+            this.update();
+            this.#centerCamera();
+        }
+        return;
     }
 
-    /**
-     * Scales the zoom by whole wheel notches, positive being closer in.
-     * The camera stays pinned to the player, so the tile under them holds still
-     * and there's no cursor anchor point to correct for.
-     * @param {number} steps
-     */
-    zoomCamera(steps){
-        const zoom = this.camera.zoom * Math.pow(ZOOM_STEP, steps);
-        this.camera.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+    zoomCamera(direction){
+        this.camera.zoom += Math.sign(direction) * ZOOM_STEP;
+        this.camera.zoom = Math.min(this.camera.zoom, ZOOM_MAX); // Clip the zoom
+        this.camera.zoom = Math.max(this.camera.zoom, ZOOM_MIN);
+        return;
     }
 
-    // Camera is in world pixels and marks the centre of the view, so it just
-    // sits on the player's tile centre -- no screen size involved.
+    /** 
+     * @param {Entity} entity
+     * Steps the player by a tile delta and keeps the camera centred on them. */
+    #moveEntity(entity, tx, ty){
+        const tile = this.getTile(tx, ty);
+        if(tile === undefined){
+            console.log("Tried to move entity onto unloaded tile");
+            return false;
+        }
+        if(!this.#canEnter(entity, tile))
+            return false;
+        entity.tx = tx;
+        entity.ty = ty;
+        return true; // For now, always returns true.
+    }
+
+    // Move camera to center of player's tile in worldspace
     #centerCamera(){
         this.camera.x = (this.player.tx * TILE_SIZE) + (TILE_SIZE / 2);
         this.camera.y = (this.player.ty * TILE_SIZE) + (TILE_SIZE / 2);
@@ -96,11 +123,16 @@ export class GameWorld{
 
     }
 
+    // Checks if entity can enter a tile TODO: actually check
+    #canEnter(entity, tile){
+        return true;
+    }
+
     /**
      * 
      * @param {number} tx 
      * @param {number} ty 
-     * @returns {TILES}
+     * @returns {TILES} tileType
      */
     getTile(tx, ty){
         // Locate what chunk it is in

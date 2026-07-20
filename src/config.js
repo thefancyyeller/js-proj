@@ -5,9 +5,9 @@ export const EVICT_DIST = RENDER_DIST + 2;
 
 // Zoom is multiplied/divided by ZOOM_STEP per wheel notch, so notches feel
 // evenly sized however far in or out you already are.
-export const ZOOM_STEP = 1.1;
+export const ZOOM_STEP = .25;
 export const ZOOM_MIN = 0.25;
-export const ZOOM_MAX = 4;
+export const ZOOM_MAX = 8;
 
 const TILE_NAMES = ['GRASS'];
 export const TILES = Object.freeze(Object.fromEntries(TILE_NAMES.map((tname, index) => {return [tname, index]})));
@@ -26,3 +26,7 @@ export function getEntityName(etid){
         throw ("Entity Name Lookup Error! Unrecognized entityTypeID");
     return (ENTITY_NAMES[etid]);
 }
+// Debug options
+export const labelChunks = true; // Not yet supported
+export const animationIndicator = true; // If the screen should say when game is paused for animations. Not yet supported
+export const showPlayerPath = true; // Display symbols on players path

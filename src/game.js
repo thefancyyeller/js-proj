@@ -1,7 +1,8 @@
 import { GameWorld } from "./world";
 import { loadSprites, Renderer } from "./renderer";
 import { InputManager} from "./inputManager";
-import { InputEvent, KeyPressEvent, MouseWheelEvent } from "./inputEvents";
+import { InputEvent, KeyPressEvent, MouseLeftClickEvent, MouseWheelEvent } from "./inputEvents";
+import { TILE_SIZE } from "./config";
 
 
 // Maps raw KeyboardEvent.code values to tile-space deltas.
@@ -30,13 +31,25 @@ function frame(timestamp){
     // Process Inputs
     const inputEvents = inputManager.drain(); // Read Queued Inputs
     for(const event of inputEvents){
-        if(event instanceof(KeyPressEvent)){ // For now, always divert to gameWorld
+        if(event instanceof(KeyPressEvent)){ // For now, always divert keypress to gameWorld
+            if(event.code === 'Space'){
+                world.continuePath();
+                continue;
+            }
             const dirVec = MOVE_KEYS[event.code];
+            if(dirVec === undefined)
+                return; // if no binding for key
             world.movePlayerDelta(dirVec[0], dirVec[1]);
             continue;
         }
         if(event instanceof MouseWheelEvent){
             world.zoomCamera(event.up? 1 : -1);
+            continue;
+        }
+        if(event instanceof MouseLeftClickEvent){
+            const worldCoords = renderer.screenToWorld([event.sx, event.sy], world.camera);
+            const tileCoords = worldCoords.map(coord => Math.floor(coord/TILE_SIZE));
+            world.setPlayerPath(...tileCoords); 
             continue;
         }
     }

@@ -1,4 +1,4 @@
-import { TILES, TILE_SIZE, CHUNK_SIZE, getTileName, ENTITIES} from "./config.js";
+import { TILES, TILE_SIZE, CHUNK_SIZE, getTileName, ENTITIES, showPlayerPath} from "./config.js";
 import {GameWorld} from "./world.js";
 
 // Map of tile IDs to sprite paths (with specific non-integer exceptions)
@@ -61,6 +61,10 @@ export class Renderer{
         ];
     }
 
+    tileToWorld(tCoords){
+        return [tCoords[0] * TILE_SIZE, tCoords[1] * TILE_SIZE];
+    }
+
     /**
      * 
      * @param {GameWorld} gameWorld 
@@ -105,7 +109,14 @@ export class Renderer{
             this.ctx.drawImage(sprite, screenCoords[0], screenCoords[1], TILE_SIZE * camera.zoom, TILE_SIZE * camera.zoom);
         }
 
-
+        // Render player path
+        if(showPlayerPath){
+            const sprite = loadedSprites[debugSpritePaths["crossHair"]];
+            for(const step of gameWorld.playerMoveQueue){
+                const screenCoords = this.worldToScreen(this.tileToWorld(step), camera);
+                this.ctx.drawImage(sprite, screenCoords[0], screenCoords[1], drawSize, drawSize);
+            }
+        }
 
     }
 }

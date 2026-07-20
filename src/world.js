@@ -37,9 +37,37 @@ export class GameWorld{
 
     update(){
         this.#manageChunks();
-        if(!this.interupted && this.playerMoveQueue.length > 0){
-            this.movePlayerDelta(...this.playerMoveQueue.unshift());
+    }
+
+    continuePath(){
+        if(this.interupted || this.playerMoveQueue.length === 0)
+            return;
+        const [tx, ty] = this.playerMoveQueue.shift();
+        if(this.#moveEntity(this.player, tx, ty)){
+            this.update();
+            this.#centerCamera();
         }
+    }
+
+    /**
+     * 
+     * @param {number} tx 
+     * @param {number} ty 
+     * @returns {TILES} tileType
+     */
+    getTile(tx, ty){
+        // Locate what chunk it is in
+        const cx = Math.floor(tx/CHUNK_SIZE);
+        const cy = Math.floor(ty/CHUNK_SIZE);
+        const c = this.chunks.get(`${cx},${cy}`);
+        if(c === undefined){
+            console.log("world.getTile error. Chunk not rendered");
+            return c;
+        }
+        // JS % keeps the dividend's sign, so wrap negatives back into [0, CHUNK_SIZE)
+        const col = ((tx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+        const row = ((ty % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+        return c.tileAt(col, row);
     }
 
     /**
@@ -70,16 +98,23 @@ export class GameWorld{
         return;
     }
 
+    setPlayerPath(tx, ty){
+        const path = this.#pathTo(this.player, tx, ty, 10000);
+        // #pathTo returns null on failure, and its first tile is where the
+        // player already stands, so it isn't a move.
+        this.playerMoveQueue = path === null ? [] : path.slice(1);
+        return;
+    }
+
     /** 
      * @param {Entity} entity
      * Steps the player by a tile delta and keeps the camera centred on them. */
     #moveEntity(entity, tx, ty){
-        const tile = this.getTile(tx, ty);
-        if(tile === undefined){
+        if(this.getTile(tx, ty) === undefined){
             console.log("Tried to move entity onto unloaded tile");
             return false;
         }
-        if(!this.#canEnter(entity, tile))
+        if(!this.#canEnter(entity, tx, ty))
             return false;
         entity.tx = tx;
         entity.ty = ty;
@@ -124,28 +159,52 @@ export class GameWorld{
     }
 
     // Checks if entity can enter a tile TODO: actually check
-    #canEnter(entity, tile){
+    #canEnter(entity, tx, ty){
         return true;
     }
 
-    /**
-     * 
-     * @param {number} tx 
-     * @param {number} ty 
-     * @returns {TILES} tileType
-     */
-    getTile(tx, ty){
-        // Locate what chunk it is in
-        const cx = Math.floor(tx/CHUNK_SIZE);
-        const cy = Math.floor(ty/CHUNK_SIZE);
-        const c = this.chunks.get(`${cx},${cy}`);
-        if(c === undefined){
-            console.log("world.getTile error. Chunk not rendered");
-            return c;
+    #pathTo(entity, tx, ty, maxIter = 1000){
+        if(typeof entity === 'number'){ // dereference if given entity id
+            entity = this.getEntity(entity);
         }
-        // JS % keeps the dividend's sign, so wrap negatives back into [0, CHUNK_SIZE)
-        const col = ((tx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-        const row = ((ty % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
-        return c.tileAt(col, row);
+        function pathScore(path){ const last = path[path.length-1]; return Math.abs(last[0] - tx) + Math.abs(last[1] - ty);}
+        function pathRedundant(path){
+            const seen = new Set();
+            for(let i = 0; i < path.length; i++){
+                let tString = `${path[i][0]},${path[i][1]}`;
+                if(seen.has(tString))
+                    return true;
+                seen.add(tString)
+            }
+            return false;
+        };
+        const walkableCheck = (path)=>{ // Checks if you can walk on the path.
+            for(const tCord of path){
+                if(!(this.#canEnter(entity, ...tCord)))
+                    return false;
+            }
+            return true;
+        };
+        // A* algorithm
+        /** @type {Array<Array<Array<number>>>} */
+        let paths = [];
+        const dirVecs = [[1,0], [0,1], [-1, 0], [0, -1]];
+        paths.push([[entity.tx, entity.ty]]); // Init with a path standing still
+        for(let iter = 0; iter < maxIter; iter++){
+            paths = paths.filter(path => !pathRedundant(path) && walkableCheck(path));// remove redundant paths and unwalkable paths
+            if(paths.length === 0)
+                return null;
+            paths.sort((aPath, bPath)=>{return pathScore(aPath) - pathScore(bPath);}); // Highest score at the end (worst candidate path)
+            if(pathScore(paths[0]) === 0) // Check if we have arrived
+                return paths[0];
+            for(const d of dirVecs){
+                const newPath = [...paths[0]];
+                const term = paths[0][paths[0].length - 1];// Terminating tile on the path
+                newPath.push([term[0] + d[0], term[1] + d[1]]);
+                paths.push(newPath);
+            }
+            paths.shift();// delete most recent path
+        }
+        return null; // Couldnt find a path
     }
 };

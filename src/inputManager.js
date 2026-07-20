@@ -55,7 +55,7 @@ export class InputManager{
             return;
         // Translate from 'monitor space' to actual canvas space
         const rect = this.canvas.getBoundingClientRect();
-        const canvasCoords = [(e.clientX - rect.left) * (this.canvas.width / rect.width),(e.clienty - rect.top) * (this.canvas.height / rect.height)];
+        const canvasCoords = [(e.clientX - rect.left) * (this.canvas.width / rect.width), (e.clientY - rect.top) * (this.canvas.height / rect.height)]; // The pixel clicked in screen space
         this.#queue.push(new MouseLeftClickEvent(canvasCoords[0], canvasCoords[1]));
     }
 

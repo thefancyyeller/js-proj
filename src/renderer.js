@@ -1,5 +1,7 @@
 import { TILES, TILE_SIZE, CHUNK_SIZE, getTileName, ENTITIES} from "./config.js";
 import {GameWorld} from "./world.js";
+// TODO: Label chunks debug feature
+
 
 // Debug options
 const labelChunks = true; 
@@ -51,8 +53,6 @@ export class Renderer{
         this.ctx = canvas.getContext("2d");
     }
 
-    // The camera marks the world point sitting at the middle of the canvas,
-    // so both conversions pivot around the screen centre.
     worldToScreen(coords, camera){
         return [
             (coords[0] - camera.x) * camera.zoom + this.canvas.width  / 2,

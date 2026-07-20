@@ -1,6 +1,9 @@
-import {CHUNK_SIZE, TILE_SIZE, TILES, RENDER_DIST, ENTITIES, EVICT_DIST} from "./config.js";
+import {CHUNK_SIZE, TILE_SIZE, TILES, RENDER_DIST, ENTITIES, EVICT_DIST,
+        ZOOM_STEP, ZOOM_MIN, ZOOM_MAX} from "./config.js";
 import { Chunk } from "./chunk.js";
 import { generateChunk } from "./worldgen.js";
+
+
 
 class Entity{
     constructor(type, tileX, tileY){
@@ -28,11 +31,13 @@ export class GameWorld{
 
     /**
      * Applies one decoded input event.
-     * @param {{type: string, dx: number, dy: number}} event
+     * @param {{type: string, dx?: number, dy?: number, steps?: number}} event
      */
     handleEvent(event){
         if(event.type === "move")
             this.movePlayer(event.dx, event.dy);
+        else if(event.type === "zoom")
+            this.zoomCamera(event.steps);
     }
 
     /** Steps the player by a tile delta and keeps the camera centred on them. */
@@ -40,6 +45,17 @@ export class GameWorld{
         this.player.tx += dx;
         this.player.ty += dy;
         this.#centerCamera();
+    }
+
+    /**
+     * Scales the zoom by whole wheel notches, positive being closer in.
+     * The camera stays pinned to the player, so the tile under them holds still
+     * and there's no cursor anchor point to correct for.
+     * @param {number} steps
+     */
+    zoomCamera(steps){
+        const zoom = this.camera.zoom * Math.pow(ZOOM_STEP, steps);
+        this.camera.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
     }
 
     // Camera is in world pixels and marks the centre of the view, so it just

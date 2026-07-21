@@ -3,6 +3,7 @@ import { loadSprites, Renderer } from "./renderer";
 import { InputManager} from "./inputManager";
 import { InputEvent, KeyPressEvent, MouseLeftClickEvent, MouseWheelEvent } from "./inputEvents";
 import { TILE_SIZE } from "./config";
+import { ContinuePathIntent, PlayerMoveIntent, SetPathIntent } from "./worldIntent";
 
 
 // Maps raw KeyboardEvent.code values to tile-space deltas.
@@ -28,30 +29,32 @@ loadSprites();
 
 // Gameloop lives here, called when we get animation frame
 function frame(timestamp){
-    // Process Inputs
-    const inputEvents = inputManager.drain(); // Read Queued Inputs
-    for(const event of inputEvents){
-        if(event instanceof(KeyPressEvent)){ // For now, always divert keypress to gameWorld
-            if(event.code === 'Space'){
-                world.continuePath();
-                continue;
+    // Do not process anything while animations are happening
+    if(renderer.animationLock === false){
+        const inputEvents = inputManager.drain(); // Read Queued Inputs
+        if(inputEvents.length === 0)
+            world.giveIntent(new ContinuePathIntent());
+        for(const event of inputEvents){
+            if(event instanceof(KeyPressEvent)){ // For now, always divert keypress to gameWorld
+                const dirVec = MOVE_KEYS[event.code];
+                if(dirVec === undefined)
+                    return; // if no binding for key
+                world.giveIntent(new PlayerMoveIntent(...dirVec));
+                break;
             }
-            const dirVec = MOVE_KEYS[event.code];
-            if(dirVec === undefined)
-                return; // if no binding for key
-            world.movePlayerDelta(dirVec[0], dirVec[1]);
-            continue;
+            if(event instanceof MouseWheelEvent){
+                world.zoomCamera(event.up? 1 : -1);
+                break;
+            }
+            if(event instanceof MouseLeftClickEvent){
+                const worldCoords = renderer.screenToWorld([event.sx, event.sy], world.camera);
+                const tileCoords = worldCoords.map(coord => Math.floor(coord/TILE_SIZE));
+                world.giveIntent(new SetPathIntent(...tileCoords));
+                break;
+            }
         }
-        if(event instanceof MouseWheelEvent){
-            world.zoomCamera(event.up? 1 : -1);
-            continue;
-        }
-        if(event instanceof MouseLeftClickEvent){
-            const worldCoords = renderer.screenToWorld([event.sx, event.sy], world.camera);
-            const tileCoords = worldCoords.map(coord => Math.floor(coord/TILE_SIZE));
-            world.setPlayerPath(...tileCoords); 
-            continue;
-        }
+        // Process world
+        renderer.addEvents(world.takeTurn());
     }
 
     // Render

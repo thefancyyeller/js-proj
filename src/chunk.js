@@ -8,8 +8,12 @@ export class Chunk{
         this.cy = cy;
     }
 
+    static idFor(cx, cy){
+        return `${cx},${cy}`;
+    }
+
     get chunkId(){
-        return `${this.cx},${this.cy}`;
+        return Chunk.idFor(this.cx, this.cy);
     }
 
     tileAt(col, row){

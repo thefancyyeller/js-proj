@@ -196,7 +196,10 @@ export class GameWorld {
      * Checks if entity is allowed to enter tile (false if unloaded)
      */
     #canEnter(entity, tx, ty) {
-        if (this.chunks.has(Chunk.idFor(tx, ty)))
+        // tx,ty are tile coords; the chunk map is keyed by chunk coords.
+        const cx = Math.floor(tx / CHUNK_SIZE);
+        const cy = Math.floor(ty / CHUNK_SIZE);
+        if (this.chunks.has(Chunk.idFor(cx, cy)))
             return true;
         return false;
         // TODO: Support entity collisions and non enterable tiles.

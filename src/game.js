@@ -24,8 +24,9 @@ const world = new GameWorld(1);
 const renderer = new Renderer(canvas);
 const inputManager = new InputManager(window, canvas);
 
-// Init
-loadSprites();
+// Init — sprites must finish loading before the first render, otherwise
+// renderer.render throws "Failed to find sprite for GRASS".
+const spritesLoaded = Promise.all(loadSprites());
 
 // Gameloop lives here, called when we get animation frame
 function frame(timestamp){
@@ -62,5 +63,9 @@ function frame(timestamp){
     requestAnimationFrame(frame);
 }
 
-// Starts the game
-requestAnimationFrame(frame);
+// Starts the game once every sprite is loaded
+spritesLoaded.then(() => {
+    requestAnimationFrame(frame);
+}).catch((err) => {
+    console.error("Sprite loading failed; game not started.", err);
+});

@@ -3,6 +3,9 @@ import { KeyPressEvent, InputEvent, MouseWheelEvent, MouseLeftClickEvent } from 
 // Drop input rather than let a held key build a backlog the player has to watch play out
 const MAX_QUEUED = 8;
 
+// Keys whose browser default (scrolling the page) we must cancel so movement stays in the game
+const PREVENT_DEFAULT_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
 export class InputManager{
     /** @type {Array<InputEvent>} */
     #queue = [];
@@ -24,6 +27,8 @@ export class InputManager{
     // Add events to the stack.
     /**@param {KeyboardEvent} e */
     #onKeyDown = (e) => {
+        if(PREVENT_DEFAULT_KEYS.has(e.code))
+            e.preventDefault();
         if(e.repeat)
             return;
         if(this.#queue.length >= MAX_QUEUED)

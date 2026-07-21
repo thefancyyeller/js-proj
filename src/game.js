@@ -16,6 +16,11 @@ const MOVE_KEYS = {
     KeyA: [-1,  0],
     KeyS: [ 0,  1],
     KeyD: [ 1,  0],
+
+    ArrowUp:    [ 0, -1],
+    ArrowDown:  [ 0,  1],
+    ArrowLeft:  [-1,  0],
+    ArrowRight: [ 1,  0],
 };
 
 const canvas = document.getElementById('game');

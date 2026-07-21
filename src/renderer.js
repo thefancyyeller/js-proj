@@ -19,7 +19,7 @@ const debugSpritePaths = {
 // Map of sprite paths to actually loaded sprites
 const loadedSprites = {};
 
-/** Returns a promise array of all sprites being loaded*/
+/** Returns a single Promise that resolves once all sprites have loaded. */
 export function loadSprites(){
     function imageLoadPromise(spritePath){
         return new Promise((resolve, reject)=>{

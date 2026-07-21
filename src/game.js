@@ -26,7 +26,7 @@ const inputManager = new InputManager(window, canvas);
 
 // Init — sprites must finish loading before the first render, otherwise
 // renderer.render throws "Failed to find sprite for GRASS".
-const spritesLoaded = Promise.all(loadSprites());
+const spritesLoaded = loadSprites();
 
 // Gameloop lives here, called when we get animation frame
 function frame(timestamp){

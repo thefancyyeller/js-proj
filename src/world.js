@@ -36,7 +36,7 @@ export class GameWorld {
 
     constructor(seed) {
         this.seed = seed;
-        this.camera = { x: 0, y: 0, zoom: 1 };
+        this.camera = { x: this.player.tx * TILE_SIZE, y: this.player.ty * TILE_SIZE, zoom: 1, dx: 0, dy:0 };
         this.#centerCamera();
         this.#manageChunks();
     }
@@ -54,6 +54,7 @@ export class GameWorld {
         if (turn instanceof PlayerMoveIntent) {
             const newCoords = [this.player.tx + turn.dx, this.player.ty + turn.dy];
             this.#moveEntity(this.player, newCoords[0], newCoords[1])
+            this.#centerCamera();
         }
         else if (turn instanceof ContinuePathIntent) {
             this.#continuePath();
@@ -65,8 +66,9 @@ export class GameWorld {
                 // First tile is where the player already stands, so drop it.
                 this.playerMoveQueue = path === null ? [] : path.slice(1);
             }
+            this.camera.dx = turn.tx * TILE_SIZE;
+            this.camera.dy = turn.ty * TILE_SIZE;
         }
-        this.#centerCamera();
         return this.#renderEvents; // Return accumulated events
     }
 
@@ -110,6 +112,22 @@ export class GameWorld {
         return;
     }
 
+    moveCamera(wx, wy){
+        this.camera.dx = wx;
+        this.camera.dy = wy;
+    }
+
+    // Moves the camera 1 tick toward target
+    updateCamera(){
+        const movePerTick = 1;
+        const xDist = this.camera.dx - this.camera.x;
+        const yDist = this.camera.dy - this.camera.y;
+        const deltaX = Math.min(movePerTick, xDist) * Math.sign(xDist);
+        const deltaY = Math.min(movePerTick, yDist) * Math.sign(yDist);
+        this.camera.x += deltaX;
+        this.camera.y += deltaY;
+    }
+
     #setPlayerPath(tx, ty) {
         const path = this.#pathTo(this.player, tx, ty);
         // #pathTo returns null on failure, and its first tile is where the
@@ -151,8 +169,8 @@ export class GameWorld {
 
     /** Move camera to center of player's tile in worldspace*/
     #centerCamera() {
-        this.camera.x = (this.player.tx * TILE_SIZE) + (TILE_SIZE / 2);
-        this.camera.y = (this.player.ty * TILE_SIZE) + (TILE_SIZE / 2);
+        this.camera.dx = (this.player.tx * TILE_SIZE) + (TILE_SIZE / 2);
+        this.camera.dy = (this.player.ty * TILE_SIZE) + (TILE_SIZE / 2);
     }
 
     #loadChunk(cx, cy) {
@@ -217,7 +235,7 @@ export class GameWorld {
         }
         const key = (x, y) => `${x},${y}`;
         const heuristic = (x, y) => Math.abs(x - tx) + Math.abs(y - ty); // Manhattan distance to goal
-        const dirVecs = [[1, 0], [0, 1], [-1, 0], [0, -1], [1,1], [-1, -1], [1. -1], [-1, 1]];
+        const dirVecs = [[1, 0], [0, 1], [-1, 0], [0, -1], [1,1], [-1, -1], [1, -1], [-1, 1]];
         const goalKey = key(tx, ty);
 
         const startKey = key(entity.tx, entity.ty);

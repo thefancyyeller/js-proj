@@ -30,6 +30,7 @@ const spritesLoaded = loadSprites();
 
 // Gameloop lives here, called when we get animation frame
 function frame(timestamp){
+    world.updateCamera(); // Camera always takes a step toward dest.
     // Do not process anything while animations are happening
     if(renderer.animationLock === false){
         const inputEvents = inputManager.drain(); // Read Queued Inputs
@@ -39,7 +40,7 @@ function frame(timestamp){
             if(event instanceof(KeyPressEvent)){ // For now, always divert keypress to gameWorld
                 const dirVec = MOVE_KEYS[event.code];
                 if(dirVec === undefined)
-                    return; // if no binding for key
+                    continue; // if no binding for key, ignore it (don't kill the loop)
                 world.giveIntent(new PlayerMoveIntent(...dirVec));
                 break;
             }

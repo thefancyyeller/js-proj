@@ -52,6 +52,7 @@ export class GameWorld {
             return;
         // Execute intent
         if (turn instanceof PlayerMoveIntent) {
+            this.playerMoveQueue = [];
             const newCoords = [this.player.tx + turn.dx, this.player.ty + turn.dy];
             this.#moveEntity(this.player, newCoords[0], newCoords[1])
             this.#centerCamera();
@@ -119,11 +120,11 @@ export class GameWorld {
     // Moves the camera 1 tick toward target
     updateCamera(){
         // Ease toward the target by a fraction of the remaining distance
-        const ease = 0.1;
+        const ease = 0.2;
         const xDist = this.camera.dx - this.camera.x;
         const yDist = this.camera.dy - this.camera.y;
-        this.camera.x += Math.abs(xDist) < 1 ? xDist : xDist * ease;
-        this.camera.y += Math.abs(yDist) < 1 ? yDist : yDist * ease;
+        this.camera.x += Math.abs(xDist) < .1 ? xDist : xDist * ease;
+        this.camera.y += Math.abs(yDist) < .1 ? yDist : yDist * ease;
     }
 
     /**

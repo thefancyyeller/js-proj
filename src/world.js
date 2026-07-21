@@ -66,6 +66,7 @@ export class GameWorld {
                 this.playerMoveQueue = path === null ? [] : path.slice(1);
             }
         }
+        this.#centerCamera();
         return this.#renderEvents; // Return accumulated events
     }
 

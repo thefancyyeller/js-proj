@@ -65,9 +65,8 @@ export class GameWorld {
                 const path = this.#pathTo(this.player, turn.tx, turn.ty, 1000);
                 // First tile is where the player already stands, so drop it.
                 this.playerMoveQueue = path === null ? [] : path.slice(1);
+                this.#centerCamera();
             }
-            this.camera.dx = turn.tx * TILE_SIZE;
-            this.camera.dy = turn.ty * TILE_SIZE;
         }
         return this.#renderEvents; // Return accumulated events
     }
@@ -84,8 +83,8 @@ export class GameWorld {
         const cy = Math.floor(ty / CHUNK_SIZE);
         const c = this.chunks.get(`${cx},${cy}`);
         if (c === undefined) {
-            console.log("world.getTile error. Chunk not rendered");
-            return c;
+            // Unloaded chunk.
+            return undefined;
         }
         // JS % keeps the dividend's sign, so wrap negatives back into [0, CHUNK_SIZE)
         const col = ((tx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
@@ -119,13 +118,20 @@ export class GameWorld {
 
     // Moves the camera 1 tick toward target
     updateCamera(){
-        const movePerTick = 1;
+        // Ease toward the target by a fraction of the remaining distance
+        const ease = 0.1;
         const xDist = this.camera.dx - this.camera.x;
         const yDist = this.camera.dy - this.camera.y;
-        const deltaX = Math.min(movePerTick, xDist) * Math.sign(xDist);
-        const deltaY = Math.min(movePerTick, yDist) * Math.sign(yDist);
-        this.camera.x += deltaX;
-        this.camera.y += deltaY;
+        this.camera.x += Math.abs(xDist) < 1 ? xDist : xDist * ease;
+        this.camera.y += Math.abs(yDist) < 1 ? yDist : yDist * ease;
+    }
+
+    /**
+     * 
+     * @param {WorldIntent} intent 
+     */
+    giveIntent(intent) {
+        this.#intents.push(intent);
     }
 
     #setPlayerPath(tx, ty) {
@@ -134,13 +140,6 @@ export class GameWorld {
         // player already stands, so it isn't a move.
         this.playerMoveQueue = path === null ? [] : path.slice(1);
         return;
-    }
-    /**
-     * 
-     * @param {WorldIntent} intent 
-     */
-    giveIntent(intent) {
-        this.#intents.push(intent);
     }
 
     // Continues the player on their path
@@ -164,6 +163,11 @@ export class GameWorld {
         this.#renderEvents.push(new EntitySlide(entity.entityId, entity.tx, entity.ty, tx, ty));
         entity.tx = tx;
         entity.ty = ty;
+        // Keep the camera target on the player after EVERY move (numpad step or
+        // path step), so it trails by at most one tile and the ease stays small
+        // and smooth instead of snapping across a big accumulated distance.
+        if (entity === this.player)
+            this.#centerCamera();
         return true; // For now, always returns true.
     }
 

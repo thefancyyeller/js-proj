@@ -1,11 +1,12 @@
 import {
-    CHUNK_SIZE, TILE_SIZE, TILES, RENDER_DIST, ENTITIES, EVICT_DIST,
+    CHUNK_SIZE, TILE_SIZE, RENDER_DIST, ENTITIES, EVICT_DIST,
     ZOOM_STEP, ZOOM_MIN, ZOOM_MAX
 } from "./config.js";
 import { Chunk } from "./chunk.js";
 import { generateChunk } from "./worldgen.js";
 import { EntitySlide, RenderEvent } from "./renderEvents.js";
 import { ContinuePathIntent, PlayerMoveIntent, SetPathIntent, WorldIntent } from "./worldIntent.js";
+import { TILE_SIM_INFO } from "./tiles.js";
 
 let nextId = 1;
 function allocId() { // Gets a unique ID for an entity
@@ -73,12 +74,11 @@ export class GameWorld {
     }
 
     /**
-     * 
      * @param {number} tx 
      * @param {number} ty 
-     * @returns {TILES} tileType
+     * @returns {number} tileId
      */
-    getTile(tx, ty) {
+    getTileId(tx, ty) {
         // Locate what chunk it is in
         const cx = Math.floor(tx / CHUNK_SIZE);
         const cy = Math.floor(ty / CHUNK_SIZE);
@@ -155,7 +155,7 @@ export class GameWorld {
      * @param {Entity} entity
      * Moves an entity to a new tile*/
     #moveEntity(entity, tx, ty) {
-        if (this.getTile(tx, ty) === undefined) {
+        if (this.getTileId(tx, ty) === undefined) {
             console.log("Tried to move entity onto unloaded tile");
             return false;
         }
@@ -223,10 +223,11 @@ export class GameWorld {
         // tx,ty are tile coords; the chunk map is keyed by chunk coords.
         const cx = Math.floor(tx / CHUNK_SIZE);
         const cy = Math.floor(ty / CHUNK_SIZE);
-        if (this.chunks.has(Chunk.idFor(cx, cy)))
-            return true;
-        return false;
-        // TODO: Support entity collisions and non enterable tiles.
+        if (!this.chunks.has(Chunk.idFor(cx, cy))) // Cannot step into tile that isnt loaded
+            return false;
+        const relT = [tx - cx * CHUNK_SIZE, ty - cy*CHUNK_SIZE]
+        const tInfo = TILE_SIM_INFO[this.chunks.get(Chunk.idFor(cx, cy)).tileAt(...relT)]
+        return !tInfo.solid
     }
 
     /**

@@ -9,17 +9,8 @@ export const ZOOM_STEP = .25;
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 8;
 
-const TILE_NAMES = ['GRASS'];
-export const TILES = Object.freeze(Object.fromEntries(TILE_NAMES.map((tname, index) => {return [tname, index]})));
-
 const ENTITY_NAMES = ['PLAYER'];
 export const ENTITIES = Object.freeze(Object.fromEntries(ENTITY_NAMES.map((name, index) => {return [name, index]})));
-
-export function getTileName(tid){
-    if(tid >= TILE_NAMES.length)
-        throw ("Tile Name Lookup Error! Unrecognized tileID");
-    return (TILE_NAMES[tid]);
-}
 
 export function getEntityName(etid){
     if(etid >= ENTITY_NAMES.length)

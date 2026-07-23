@@ -1,12 +1,7 @@
-import { TILES, TILE_SIZE, CHUNK_SIZE, getTileName, ENTITIES, showPlayerPath} from "./config.js";
+import { TILE_SIZE, CHUNK_SIZE, ENTITIES, showPlayerPath} from "./config.js";
 import { EntityRenderEvent, EntitySlide } from "./renderEvents.js";
 import {GameWorld} from "./world.js";
-
-// Map of tile IDs to sprite paths (with specific non-integer exceptions)
-const tileSpritePaths = {
-    [TILES.GRASS]: "/grass.png",
-    darkGrass: "/darkGrass.png",
-};
+import {TILES, TILE_RENDER_INFO, TileRenderInfo} from "./tiles.js"
 
 const entitySpritePaths ={
     [ENTITIES.PLAYER]: "/player.png"
@@ -30,7 +25,7 @@ export function loadSprites(){
         });
     };
     const paths = [
-    ...Object.values(tileSpritePaths),
+    ...Object.entries(TILE_RENDER_INFO).map(([id, rendInfo]) => rendInfo.spritePath),
     ...Object.values(entitySpritePaths),
     ...Object.values(debugSpritePaths),
     ];
@@ -132,23 +127,17 @@ export class Renderer{
         // Figure out the tile we start rendering at, working back from the
         // camera to the world point at the canvas' top-left corner
         const topLeft = this.screenToWorld([0, 0], camera);
-        let startTile = [Math.floor(topLeft[0] / TILE_SIZE), Math.floor(topLeft[1] / TILE_SIZE)];
+        const startTile = [Math.floor(topLeft[0] / TILE_SIZE), Math.floor(topLeft[1] / TILE_SIZE)];
         const drawSize = TILE_SIZE * camera.zoom;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for(let tx = startTile[0]; tx <= startTile[0] + tilesHorizont; tx++){
             for(let ty = startTile[1]; ty <= startTile[1] + tilesVert; ty++){
-                const t = gameWorld.getTile(tx, ty);
+                const t = gameWorld.getTileId(tx, ty);
                 if(t === undefined) // Chunk not loaded yet
                     continue;
-                let tSprite;
-                if(t === TILES.GRASS && ((tx + ty) % 2 === 0)){// Special case to make grass look more interesting
-                    tSprite = loadedSprites["/darkGrass.png"];
-                }
-                else{
-                    tSprite = loadedSprites[tileSpritePaths[t]];
-                    if(tSprite === undefined){
-                        throw new Error(`Failed to find sprite for ${getTileName(t)}`);
-                    }
+                let tSprite = this.#getTileSprite(t);
+                if(tSprite === undefined){
+                    throw new Error(`Failed to find sprite for ${getTileName(t)}`);
                 }
                 const screenCoords = this.worldToScreen([tx*TILE_SIZE, ty*TILE_SIZE], camera);
                 this.ctx.drawImage(tSprite, screenCoords[0], screenCoords[1], drawSize, drawSize);
@@ -205,6 +194,15 @@ export class Renderer{
     #getEntitySprite(entityId, world){
         const etid = world.getEntity(entityId).etid;
         return loadedSprites[entitySpritePaths[etid]];
+    }
+
+    /**
+     * 
+     * @param {number} tileId 
+     * @returns {HTMLImageElement}
+     */
+    #getTileSprite(tileId){
+        return loadedSprites[TILE_RENDER_INFO[tileId].spritePath];
     }
 }
 

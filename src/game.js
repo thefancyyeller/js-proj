@@ -1,11 +1,11 @@
+
+import { TILES, TILE_RENDER_INFO} from "./tiles.js";
 import { GameWorld } from "./world";
 import { loadSprites, Renderer } from "./renderer";
 import { InputManager} from "./inputManager";
 import { InputEvent, KeyPressEvent, MouseLeftClickEvent, MouseWheelEvent } from "./inputEvents";
 import { TILE_SIZE } from "./config";
 import { ContinuePathIntent, PlayerMoveIntent, SetPathIntent } from "./worldIntent";
-
-
 // Maps raw KeyboardEvent.code values to tile-space deltas.
 const MOVE_KEYS = {
     Numpad1: [-1,  1], Numpad2: [ 0,  1], Numpad3: [ 1,  1],
